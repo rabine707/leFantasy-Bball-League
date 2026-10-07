@@ -1,6 +1,6 @@
 const LEAGUE_ID="1406415989997846528",API="https://api.sleeper.app/v1";const state={league:null,users:[],rosters:[],drafts:[],draft:null,picks:[],history:[]};const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));async function get(path){const r=await fetch(API+path);if(!r.ok)throw Error("Sleeper "+r.status);return r.json()}function route(n){$$(".page").forEach(x=>x.classList.toggle("active",x.dataset.page===n));$$("[data-route]").forEach(x=>x.classList.toggle("active",x.dataset.route===n));scrollTo({top:0,behavior:"smooth"})}$$("[data-route]").forEach(b=>b.addEventListener("click",()=>route(b.dataset.route)));function avatar(u){return u&&u.avatar?"https://sleepercdn.com/avatars/thumbs/"+u.avatar:""}function rosterFor(id){return state.rosters.find(r=>r.owner_id===id)}function status(ok,label){const e=$("#apiStatus");e.classList.toggle("online",ok);e.classList.toggle("offline",!ok);e.querySelector("span").textContent=label}function renderLeague(){const l=state.league||{},name=l.name||"LeFantasy Basketball";$("#leagueSubtitle").textContent=name+" · Live league data from Sleeper";$("#teamCount").textContent=l.total_rosters||state.users.length||"—";$("#rosterCount").textContent=state.rosters.length||"—";const filled=state.rosters.filter(r=>r.owner_id).length;const cards=[["LEAGUE",name,(l.season||"2026")+" season · "+(l.status||"preseason")],["MANAGERS",state.users.length+" connected",filled+" occupied rosters"],["DRAFT",state.draft?String(state.draft.status||"configured").toUpperCase():"NOT FOUND",state.draft?String(state.draft.settings?.teams||l.total_rosters||"—")+" teams · "+(state.draft.type||"draft"):"No draft returned yet"]];$("#pulse").innerHTML=cards.map(x=>'<article class="card"><small>'+esc(x[0])+'</small><strong>'+esc(x[1])+'</strong><p>'+esc(x[2])+'</p></article>').join("");$("#managerGrid").innerHTML=state.users.map(u=>{const r=rosterFor(u.user_id),display=u.metadata?.team_name||u.display_name||u.username||"Manager",img=avatar(u);return '<article class="manager">'+(img?'<img src="'+img+'" alt="">':"")+'<h3>'+esc(display)+'</h3><p>@'+esc(u.username||u.display_name||"sleeper")+'</p><div class="roster">Roster '+esc(r?.roster_id||"—")+' · '+(r?.players?.length||0)+' players</div></article>'}).join("")||'<div class="empty">No managers returned.</div>';$("#lastSync").textContent="Synced "+new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})}function renderDraft(){const d=state.draft;if(!d){$("#draftStatus").textContent="NOT FOUND";$("#draftMeta").textContent="Sleeper has not returned a draft for this league.";$("#warStatus").textContent="WAITING";$("#warCopy").textContent="No draft configuration is available yet.";return}const teams=d.settings?.teams||state.league?.total_rosters||10;$("#draftStatus").textContent=String(d.status||"configured").toUpperCase();$("#draftMeta").textContent=teams+" teams · "+(d.type||"draft")+" · "+(d.settings?.rounds||"—")+" rounds";$("#warStatus").textContent=String(d.status||"configured").toUpperCase();$("#warCopy").textContent=d.draft_id?"Draft "+d.draft_id:"Draft connected";$("#pickCount").textContent=state.picks.length+" picks";if(!state.picks.length){$("#draftBoard").innerHTML='<div class="empty">Draft connected. Picks will populate here when Sleeper reports them.</div>';return}const sorted=[...state.picks].sort((a,b)=>a.pick_no-b.pick_no);$("#draftBoard").innerHTML='<div class="draft-grid" style="--teams:'+teams+'">'+sorted.map(p=>'<div class="pick"><div class="num">#'+esc(p.pick_no)+' · R'+esc(p.round)+'</div><b>'+esc(p.metadata?.first_name||"")+' '+esc(p.metadata?.last_name||p.player_id||"Player")+'</b><small>'+esc(p.metadata?.position||"")+(p.metadata?.team?" · "+esc(p.metadata.team):"")+'</small></div>').join("")+"</div>"}async function sync(){status(false,"SYNCING");try{const data=await Promise.all([get("/league/"+LEAGUE_ID),get("/league/"+LEAGUE_ID+"/users"),get("/league/"+LEAGUE_ID+"/rosters"),get("/league/"+LEAGUE_ID+"/drafts")]);state.league=data[0];state.users=data[1]||[];state.rosters=data[2]||[];state.drafts=data[3]||[];state.draft=state.drafts[0]||null;state.picks=state.draft?.draft_id?await get("/draft/"+state.draft.draft_id+"/picks").catch(()=>[]):[];renderLeague();renderDraft();status(true,"SLEEPER LIVE")}catch(e){console.error(e);status(false,"OFFLINE");$("#leagueSubtitle").textContent="Could not reach Sleeper. Retry when the public API is available."}}$("#refresh").addEventListener("click",sync);sync();setInterval(sync,60000);
 
-$$(".archive-tab").forEach(b=>b.addEventListener("click",()=>{$$(".archive-tab").forEach(x=>x.classList.toggle("active",x===b));$$(".archive-view").forEach(x=>x.classList.toggle("active",x.id===(b.dataset.archiveView==="record"?"recordView":"seasonsView")))}));
+$(".archive-tab").forEach(b=>b.addEventListener("click",()=>{$(".archive-tab").forEach(x=>x.classList.toggle("active",x===b));const map={record:"recordView",seasons:"seasonsView",highlights:"highlightsView",drafts:"draftsView"};$(".archive-view").forEach(x=>x.classList.toggle("active",x.id===map[b.dataset.archiveView]))}));
 function pts(r,key){return Number(r?.settings?.[key]||0)+Number(r?.settings?.[key+"_decimal"]||0)/100}
 function managerName(users,id){const u=users.find(x=>x.user_id===id);return u?.metadata?.team_name||u?.display_name||u?.username||"Unknown Manager"}
 async function loadHistory(){
@@ -10,12 +10,12 @@ async function loadHistory(){
   while(league&&guard<20){
    const id=league.league_id||LEAGUE_ID;
    const [users,rosters]=await Promise.all([get("/league/"+id+"/users"),get("/league/"+id+"/rosters")]);
-   seasons.push({league,users:users||[],rosters:rosters||[]});
+   const drafts=await get("/league/"+id+"/drafts").catch(()=>[]);seasons.push({league,users:users||[],rosters:rosters||[],drafts:drafts||[],matchups:[]});
    const prev=league.previous_league_id;
    if(!prev||prev==="0")break;
    league=await get("/league/"+prev);guard++;
   }
-  state.history=seasons;renderHistory();
+  state.history=seasons;renderHistory();await loadDeepHistory();
  }catch(e){console.error(e);$("#historyStatus").textContent="History could not be fully loaded from Sleeper."}
 }
 function renderHistory(){
@@ -31,3 +31,31 @@ function renderHistory(){
  $("#seasonArchive").innerHTML=seasons.map(s=>{const standings=s.rosters.filter(r=>r.owner_id).map(r=>({name:managerName(s.users,r.owner_id),w:Number(r.settings?.wins||0),l:Number(r.settings?.losses||0),t:Number(r.settings?.ties||0),pf:pts(r,"fpts")})).sort((a,b)=>(b.w-a.w)||(a.l-b.l)||(b.pf-a.pf));return '<article class="season-sheet"><div class="season-title"><h2>'+esc(s.league.season||"Season")+'</h2><span>'+esc(s.league.name||"LeFantasy Basketball")+'</span></div><div class="season-standings">'+standings.map((x,i)=>'<div class="standing-row"><span class="standing-rank">'+(i+1)+'</span><div class="standing-name"><b>'+esc(x.name)+'</b><small>FINAL / STORED RECORD</small></div><span class="standing-record">'+x.w+"–"+x.l+(x.t?"–"+x.t:"")+'</span><span class="standing-pf">'+x.pf.toFixed(1)+" PF</span></div>").join("")+"</div></article>"}).join("");
 }
 loadHistory();
+async function loadDeepHistory(){
+ const weekly=[];
+ for(const s of state.history){
+  const weeks=Math.min(Number(s.league.settings?.playoff_week_start||19)-1,30);
+  const calls=[];
+  for(let w=1;w<=weeks;w++)calls.push(get("/league/"+s.league.league_id+"/matchups/"+w).then(rows=>({w,rows})).catch(()=>({w,rows:[]})));
+  const data=await Promise.all(calls);
+  s.matchups=data;
+  data.forEach(({w,rows})=>{const groups=new Map();rows.forEach(r=>{if(!r.matchup_id)return;const a=groups.get(r.matchup_id)||[];a.push(r);groups.set(r.matchup_id,a)});groups.forEach(pair=>{if(pair.length!==2)return;pair.forEach((r,i)=>{const roster=s.rosters.find(x=>x.roster_id===r.roster_id);if(!roster?.owner_id)return;weekly.push({season:s.league.season,week:w,name:managerName(s.users,roster.owner_id),points:Number(r.points||0),opp:Number(pair[1-i].points||0)})})})});
+  for(const d of s.drafts||[])d.picks=await get("/draft/"+d.draft_id+"/picks").catch(()=>[]);
+ }
+ renderDeepHistory(weekly);
+}
+function renderDeepHistory(weekly){
+ const completed=weekly.filter(x=>Number.isFinite(x.points)&&Number.isFinite(x.opp)&&(x.points>0||x.opp>0));
+ const hi=[...completed].sort((a,b)=>b.points-a.points)[0],lo=[...completed].filter(x=>x.points>0).sort((a,b)=>a.points-b.points)[0];
+ const margins=completed.map(x=>({...x,margin:x.points-x.opp})).filter(x=>x.margin>=0);
+ const blow=[...margins].sort((a,b)=>b.margin-a.margin)[0],close=[...margins].filter(x=>x.margin>0).sort((a,b)=>a.margin-b.margin)[0];
+ const cards=[
+  ["HIGHEST WEEK",hi?hi.points.toFixed(1):"—",hi?.name,hi?hi.season+" · Week "+hi.week:"No verified matchup"],
+  ["LOWEST WEEK",lo?lo.points.toFixed(1):"—",lo?.name,lo?lo.season+" · Week "+lo.week:"No verified matchup"],
+  ["BIGGEST WIN",blow?blow.margin.toFixed(1)+" pts":"—",blow?.name,blow?blow.season+" · Week "+blow.week:"No verified matchup"],
+  ["CLOSEST WIN",close?close.margin.toFixed(1)+" pts":"—",close?.name,close?close.season+" · Week "+close.week:"No verified matchup"]
+ ];
+ $("#recordCards").innerHTML=cards.map(x=>'<article class="record-card"><small>'+x[0]+'</small><strong>'+esc(x[1])+'</strong><b>'+esc(x[2]||"Not available")+'</b><span>'+esc(x[3])+'</span></article>').join("");
+ const draftSeasons=state.history.filter(s=>(s.drafts||[]).some(d=>(d.picks||[]).length));
+ $("#draftArchive").innerHTML=draftSeasons.length?draftSeasons.map(s=>{const ds=s.drafts.filter(d=>(d.picks||[]).length);return ds.map(d=>'<article class="draft-season"><div class="draft-season-head"><h3>'+esc(s.league.season||"Season")+' Draft</h3><span>'+d.picks.length+' verified picks · '+esc(d.type||"draft")+'</span></div><div class="draft-picks">'+[...d.picks].sort((a,b)=>a.pick_no-b.pick_no).map(p=>{const who=p.picked_by?managerName(s.users,p.picked_by):"Unknown";return '<div class="historic-pick"><small>#'+esc(p.pick_no)+' · ROUND '+esc(p.round)+'</small><b>'+esc((p.metadata?.first_name||"")+" "+(p.metadata?.last_name||p.player_id||"Player"))+'</b><span>'+esc(who)+(p.metadata?.position?" · "+esc(p.metadata.position):"")+'</span></div>'}).join("")+'</div></article>').join("")}).join(""):'<div class="empty">No historical Sleeper draft picks were returned for the linked seasons.</div>';
+}
