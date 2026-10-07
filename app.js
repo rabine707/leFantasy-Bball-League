@@ -42,7 +42,7 @@ async function loadDeepHistory(){
   data.forEach(({w,rows})=>{const groups=new Map();rows.forEach(r=>{if(!r.matchup_id)return;const a=groups.get(r.matchup_id)||[];a.push(r);groups.set(r.matchup_id,a)});groups.forEach(pair=>{if(pair.length!==2)return;pair.forEach((r,i)=>{const roster=s.rosters.find(x=>x.roster_id===r.roster_id);if(!roster?.owner_id)return;weekly.push({season:s.league.season,week:w,name:managerName(s.users,roster.owner_id),points:Number(r.points||0),opp:Number(pair[1-i].points||0)})})})});
   for(const d of s.drafts||[])d.picks=await get("/draft/"+d.draft_id+"/picks").catch(()=>[]);
  }
- renderDeepHistory(weekly);
+ renderDeepHistory(weekly);renderAnalytics();
 }
 function renderDeepHistory(weekly){
  const completed=weekly.filter(x=>Number.isFinite(x.points)&&Number.isFinite(x.opp)&&(x.points>0||x.opp>0));
@@ -58,4 +58,37 @@ function renderDeepHistory(weekly){
  $("#recordCards").innerHTML=cards.map(x=>'<article class="record-card"><small>'+x[0]+'</small><strong>'+esc(x[1])+'</strong><b>'+esc(x[2]||"Not available")+'</b><span>'+esc(x[3])+'</span></article>').join("");
  const draftSeasons=state.history.filter(s=>(s.drafts||[]).some(d=>(d.picks||[]).length));
  $("#draftArchive").innerHTML=draftSeasons.length?draftSeasons.map(s=>{const ds=s.drafts.filter(d=>(d.picks||[]).length);return ds.map(d=>'<article class="draft-season"><div class="draft-season-head"><h3>'+esc(s.league.season||"Season")+' Draft</h3><span>'+d.picks.length+' verified picks · '+esc(d.type||"draft")+'</span></div><div class="draft-picks">'+[...d.picks].sort((a,b)=>a.pick_no-b.pick_no).map(p=>{const who=p.picked_by?managerName(s.users,p.picked_by):"Unknown";return '<div class="historic-pick"><small>#'+esc(p.pick_no)+' · ROUND '+esc(p.round)+'</small><b>'+esc((p.metadata?.first_name||"")+" "+(p.metadata?.last_name||p.player_id||"Player"))+'</b><span>'+esc(who)+(p.metadata?.position?" · "+esc(p.metadata.position):"")+'</span></div>'}).join("")+'</div></article>').join("")}).join(""):'<div class="empty">No historical Sleeper draft picks were returned for the linked seasons.</div>';
+}
+function renderAnalytics(){
+ const current=state.history.find(s=>String(s.league.league_id)===String(LEAGUE_ID))||state.history[0];
+ if(!current||!current.matchups?.length)return;
+ const teams=new Map();
+ current.rosters.filter(r=>r.owner_id).forEach(r=>teams.set(r.roster_id,{id:r.roster_id,name:managerName(current.users,r.owner_id),aw:0,al:0,at:0,tw:0,tl:0,tt:0,pf:0,weeks:0}));
+ let latest=0,latestRows=[];
+ current.matchups.forEach(({w,rows})=>{
+  const valid=rows.filter(r=>teams.has(r.roster_id)&&Number(r.points)>0);
+  if(valid.length<2)return;
+  latest=Math.max(latest,w);if(w===latest)latestRows=valid;
+  const scores=valid.map(r=>Number(r.points));
+  valid.forEach(r=>{const t=teams.get(r.roster_id),p=Number(r.points);t.pf+=p;t.weeks++;scores.forEach((q,i)=>{if(valid[i].roster_id===r.roster_id)return;if(p>q)t.tw++;else if(p<q)t.tl++;else t.tt++})});
+  const groups=new Map();valid.forEach(r=>{if(!r.matchup_id)return;const a=groups.get(r.matchup_id)||[];a.push(r);groups.set(r.matchup_id,a)});groups.forEach(pair=>{if(pair.length!==2)return;const a=teams.get(pair[0].roster_id),b=teams.get(pair[1].roster_id),pa=Number(pair[0].points),pb=Number(pair[1].points);if(pa>pb){a.aw++;b.al++}else if(pb>pa){b.aw++;a.al++}else{a.at++;b.at++}});
+ });
+ const arr=[...teams.values()].map(t=>{const actualGames=t.aw+t.al+t.at,trueGames=t.tw+t.tl+t.tt,truePct=trueGames?(t.tw+.5*t.tt)/trueGames:0,expected=actualGames*truePct,luck=t.aw+.5*t.at-expected;return {...t,truePct,luck}}).sort((a,b)=>b.truePct-a.truePct||b.pf-a.pf);
+ $("#trueWeekLabel").textContent=latest?"Through Week "+latest:"Waiting for completed matchups";
+ $("#trueBody").innerHTML=arr.length?arr.map(t=>'<tr><td>'+esc(t.name)+'</td><td>'+t.aw+"–"+t.al+(t.at?"–"+t.at:"")+'</td><td>'+t.tw+"–"+t.tl+(t.tt?"–"+t.tt:"")+'</td><td>'+(t.truePct*100).toFixed(1)+'%</td><td class="'+(t.luck>0.05?"luck-pos":t.luck<-.05?"luck-neg":"")+'">'+(t.luck>=0?"+":"")+t.luck.toFixed(1)+'</td><td>'+t.pf.toFixed(1)+'</td></tr>').join(""):'<tr><td colspan="6">No completed matchup weeks yet.</td></tr>';
+ if(!latestRows.length){$("#weeklyAwards").innerHTML='<div class="empty">Awards begin after the first completed matchup week.</div>';return}
+ $("#awardWeek").textContent="Week "+latest;
+ const ranked=[...latestRows].sort((a,b)=>Number(b.points)-Number(a.points)),high=ranked[0],low=ranked[ranked.length-1];
+ const nm=r=>{const ro=current.rosters.find(x=>x.roster_id===r.roster_id);return ro?managerName(current.users,ro.owner_id):"Unknown"};
+ const groups=new Map();latestRows.forEach(r=>{if(!r.matchup_id)return;const a=groups.get(r.matchup_id)||[];a.push(r);groups.set(r.matchup_id,a)});
+ const games=[...groups.values()].filter(x=>x.length===2).map(pair=>({pair,margin:Math.abs(Number(pair[0].points)-Number(pair[1].points))})).sort((a,b)=>a.margin-b.margin);
+ const close=games[0],blow=games[games.length-1];
+ const winner=g=>g?g.pair.slice().sort((a,b)=>Number(b.points)-Number(a.points))[0]:null;
+ const awards=[
+  ["TEAM OF THE WEEK","The Headliner",nm(high),Number(high.points).toFixed(1)+" pts","Highest score of the week."],
+  ["THE GARBAGE FIRE","Rough Edition",nm(low),Number(low.points).toFixed(1)+" pts","Lowest score of the completed week."],
+  ["THE HEARTBREAKER","Photo Finish",close?nm(winner(close)):"—",close?close.margin.toFixed(1)+" pts":"—","Narrowest winning margin."],
+  ["THE STATEMENT","No Doubt About It",blow?nm(winner(blow)):"—",blow?blow.margin.toFixed(1)+" pts":"—","Largest winning margin."]
+ ];
+ $("#weeklyAwards").innerHTML=awards.map(a=>'<article class="award"><small>'+a[0]+'</small><h3>'+a[1]+'</h3><b>'+esc(a[2])+'</b><div class="award-stat">'+esc(a[3])+'</div><p>'+a[4]+'</p></article>').join("");
 }
