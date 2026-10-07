@@ -2,7 +2,7 @@ const LEAGUE_ID="1406415989997846528",API="https://api.sleeper.app/v1";const sta
 
 $(".archive-tab").forEach(b=>b.addEventListener("click",()=>{$(".archive-tab").forEach(x=>x.classList.toggle("active",x===b));const map={record:"recordView",seasons:"seasonsView",highlights:"highlightsView",drafts:"draftsView",rivalries:"rivalriesView"};$(".archive-view").forEach(x=>x.classList.toggle("active",x.id===map[b.dataset.archiveView]))}));
 function pts(r,key){return Number(r?.settings?.[key]||0)+Number(r?.settings?.[key+"_decimal"]||0)/100}
-function managerName(users,id){const u=users.find(x=>x.user_id===id);return u?.metadata?.team_name||u?.display_name||u?.username||"Unknown Manager"}
+function isCurrentManager(id){return state.users.some(u=>u.user_id===id)}function managerName(users,id){if(state.users.length&&!isCurrentManager(id))return "Seattle SuperSonics";const u=state.users.find(x=>x.user_id===id)||users.find(x=>x.user_id===id);return u?.metadata?.team_name||u?.display_name||u?.username||"Unknown Manager"}
 async function loadHistory(){
  if(state.historyLoaded||state.historyLoading||!state.league)return;
  state.historyLoading=true;
