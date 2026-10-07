@@ -10,7 +10,7 @@ async function loadHistory(){
   while(league&&guard<20){
    const id=league.league_id||LEAGUE_ID;
    const [users,rosters]=await Promise.all([get("/league/"+id+"/users"),get("/league/"+id+"/rosters")]);
-   const drafts=await get("/league/"+id+"/drafts").catch(()=>[]);seasons.push({league,users:users||[],rosters:rosters||[],drafts:drafts||[],matchups:[]});
+   const [drafts,winners]=await Promise.all([get("/league/"+id+"/drafts").catch(()=>[]),get("/league/"+id+"/winners_bracket").catch(()=>[])]);seasons.push({league,users:users||[],rosters:rosters||[],drafts:drafts||[],winners:winners||[],matchups:[]});
    const prev=league.previous_league_id;
    if(!prev||prev==="0")break;
    league=await get("/league/"+prev);guard++;
@@ -26,8 +26,8 @@ function renderHistory(){
  $("#historySpan").textContent=years.length?(years[years.length-1]+"–"+years[0]):"Linked seasons";
  const all=new Map();
  seasons.forEach(s=>s.rosters.forEach(r=>{if(!r.owner_id)return;const key=r.owner_id,name=managerName(s.users,key),x=all.get(key)||{name,seasons:0,w:0,l:0,t:0,pf:0,pa:0};x.name=name;x.seasons++;x.w+=Number(r.settings?.wins||0);x.l+=Number(r.settings?.losses||0);x.t+=Number(r.settings?.ties||0);x.pf+=pts(r,"fpts");x.pa+=pts(r,"fpts_against");all.set(key,x)}));
- const rows=[...all.values()].map(x=>({...x,pct:(x.w+x.l+x.t)?(x.w+.5*x.t)/(x.w+x.l+x.t):0})).sort((a,b)=>b.pct-a.pct||b.w-a.w||b.pf-a.pf);
- $("#recordBody").innerHTML=rows.map(x=>"<tr><td>"+esc(x.name)+"</td><td>"+x.seasons+"</td><td>"+x.w+"</td><td>"+x.l+"</td><td>"+x.t+"</td><td>"+(x.pct*100).toFixed(1)+"%</td><td>"+x.pf.toFixed(1)+"</td><td>"+x.pa.toFixed(1)+"</td></tr>").join("");
+ const rows=[...all.entries()].map(([id,x])=>{const p=state.postseason?.get(id);return {...x,id,titles:p?.titles||0,finals:p?.finals||0,playoffs:p?.playoffs||0,pct:(x.w+x.l+x.t)?(x.w+.5*x.t)/(x.w+x.l+x.t):0}}).sort((a,b)=>b.titles-a.titles||b.pct-a.pct||b.w-a.w||b.pf-a.pf);
+ $("#recordBody").innerHTML=rows.map(x=>"<tr><td>"+esc(x.name)+(x.titles?" · 🏆"+x.titles:"")+"</td><td>"+x.seasons+"</td><td>"+x.w+"</td><td>"+x.l+"</td><td>"+x.t+"</td><td>"+(x.pct*100).toFixed(1)+"%</td><td>"+x.pf.toFixed(1)+"</td><td>"+x.pa.toFixed(1)+"</td></tr>").join("");
  $("#seasonArchive").innerHTML=seasons.map(s=>{const standings=s.rosters.filter(r=>r.owner_id).map(r=>({name:managerName(s.users,r.owner_id),w:Number(r.settings?.wins||0),l:Number(r.settings?.losses||0),t:Number(r.settings?.ties||0),pf:pts(r,"fpts")})).sort((a,b)=>(b.w-a.w)||(a.l-b.l)||(b.pf-a.pf));return '<article class="season-sheet"><div class="season-title"><h2>'+esc(s.league.season||"Season")+'</h2><span>'+esc(s.league.name||"LeFantasy Basketball")+'</span></div><div class="season-standings">'+standings.map((x,i)=>'<div class="standing-row"><span class="standing-rank">'+(i+1)+'</span><div class="standing-name"><b>'+esc(x.name)+'</b><small>FINAL / STORED RECORD</small></div><span class="standing-record">'+x.w+"–"+x.l+(x.t?"–"+x.t:"")+'</span><span class="standing-pf">'+x.pf.toFixed(1)+" PF</span></div>").join("")+"</div></article>"}).join("");
 }
 loadHistory();
@@ -42,7 +42,7 @@ async function loadDeepHistory(){
   data.forEach(({w,rows})=>{const groups=new Map();rows.forEach(r=>{if(!r.matchup_id)return;const a=groups.get(r.matchup_id)||[];a.push(r);groups.set(r.matchup_id,a)});groups.forEach(pair=>{if(pair.length!==2)return;pair.forEach((r,i)=>{const roster=s.rosters.find(x=>x.roster_id===r.roster_id);if(!roster?.owner_id)return;weekly.push({season:s.league.season,week:w,name:managerName(s.users,roster.owner_id),points:Number(r.points||0),opp:Number(pair[1-i].points||0)})})})});
   for(const d of s.drafts||[])d.picks=await get("/draft/"+d.draft_id+"/picks").catch(()=>[]);
  }
- renderDeepHistory(weekly);renderAnalytics();renderRivalries();
+ renderDeepHistory(weekly);renderAnalytics();renderRivalries();renderPostseason();
 }
 function renderDeepHistory(weekly){
  const completed=weekly.filter(x=>Number.isFinite(x.points)&&Number.isFinite(x.opp)&&(x.points>0||x.opp>0));
@@ -128,12 +128,28 @@ function openManager(id){
  const weeks=[],rivals=new Map();
  appearances.forEach(({s,r})=>(s.matchups||[]).forEach(({w,rows})=>{const me=rows.find(x=>x.roster_id===r.roster_id);if(!me||Number(me.points)<=0||!me.matchup_id)return;const opp=rows.find(x=>x.matchup_id===me.matchup_id&&x.roster_id!==me.roster_id);if(!opp)return;const or=s.rosters.find(x=>x.roster_id===opp.roster_id);if(!or?.owner_id)return;const mp=Number(me.points),op=Number(opp.points);weeks.push({season:s.league.season,week:w,points:mp,opp:op,oppId:or.owner_id,oppName:managerName(s.users,or.owner_id)});const z=rivals.get(or.owner_id)||{name:managerName(s.users,or.owner_id),w:0,l:0,t:0,pf:0,pa:0,g:0};z.g++;z.pf+=mp;z.pa+=op;if(mp>op)z.w++;else if(mp<op)z.l++;else z.t++;z.name=managerName(s.users,or.owner_id);rivals.set(or.owner_id,z)}));
  const pct=career.w+career.l+career.t?(career.w+.5*career.t)/(career.w+career.l+career.t):0,best=[...weeks].sort((a,b)=>b.points-a.points)[0],worst=[...weeks].filter(x=>x.points>0).sort((a,b)=>a.points-b.points)[0],big=[...weeks].filter(x=>x.points>x.opp).sort((a,b)=>(b.points-b.opp)-(a.points-a.opp))[0],heart=[...weeks].filter(x=>x.points<x.opp).sort((a,b)=>(a.opp-a.points)-(b.opp-b.points))[0];
- const seasons=appearances.sort((a,b)=>Number(b.s.league.season)-Number(a.s.league.season));
+ const seasons=appearances.sort((a,b)=>Number(b.s.league.season)-Number(a.s.league.season));const post=appearances.map(({s,r})=>({season:s.league.season,result:playoffResult(s,r.roster_id)})).filter(x=>x.result),titles=post.filter(x=>x.result==="Champion").length,finals=post.filter(x=>x.result==="Champion"||x.result==="Runner-up").length;
  const rivalryRows=[...rivals.values()].sort((a,b)=>b.g-a.g);
  $("#managerProfile").innerHTML='<div class="profile-hero"><div class="profile-id">'+(img?'<img src="'+img+'" alt="">':'')+'<div><div class="eyebrow">MANAGER FILE · LEFANTASY ARCHIVES</div><h1>'+esc(name)+'</h1><p>@'+esc(u.username||u.display_name||"sleeper")+' · '+appearances.length+' verified season'+(appearances.length===1?"":"s")+'</p></div></div><aside class="profile-current"><small>CURRENT ROSTER</small><strong>ROSTER '+esc(currentRoster?.roster_id||"—")+'</strong><span>'+(currentRoster?.players?.length||0)+' players currently listed by Sleeper</span></aside></div><div class="profile-stats">'+[
- ["CAREER RECORD",career.w+"–"+career.l+(career.t?"–"+career.t:"")],["WIN RATE",(pct*100).toFixed(1)+"%"],["CAREER PF",career.pf.toFixed(1)],["BEST WEEK",best?best.points.toFixed(1):"—"],["SEASONS",appearances.length]
- ].map(x=>'<div class="profile-stat"><small>'+x[0]+'</small><strong>'+x[1]+'</strong></div>').join("")+'</div><div class="profile-columns"><div><section class="profile-section"><div class="kicker">YEAR BY YEAR</div><h2>Season Résumé</h2>'+seasons.map(({s,r})=>'<div class="resume-row"><span>'+esc(s.league.season)+'</span><div><b>'+Number(r.settings?.wins||0)+'–'+Number(r.settings?.losses||0)+(Number(r.settings?.ties||0)?"–"+Number(r.settings.ties):"")+'</b><small>'+pts(r,"fpts").toFixed(1)+' PF · '+pts(r,"fpts_against").toFixed(1)+' PA</small></div><small>'+esc(s.league.name||"LeFantasy")+'</small></div>').join("")+'</section><section class="profile-section"><div class="kicker">PERSONAL RECORDS</div><h2>Highs & Lows</h2><div class="profile-week-grid">'+[
+ ["CAREER RECORD",career.w+"–"+career.l+(career.t?"–"+career.t:"")],["WIN RATE",(pct*100).toFixed(1)+"%"],["CAREER PF",career.pf.toFixed(1)],["BEST WEEK",best?best.points.toFixed(1):"—"],["SEASONS",appearances.length],["TITLES",titles],["FINALS",finals]
+ ].map(x=>'<div class="profile-stat"><small>'+x[0]+'</small><strong>'+x[1]+'</strong></div>').join("")+'</div><div class="profile-columns"><div><section class="profile-section"><div class="kicker">YEAR BY YEAR</div><h2>Season Résumé</h2>'+seasons.map(({s,r})=>'<div class="resume-row"><span>'+esc(s.league.season)+'</span><div><b>'+Number(r.settings?.wins||0)+'–'+Number(r.settings?.losses||0)+(Number(r.settings?.ties||0)?"–"+Number(r.settings.ties):"")+'</b><small>'+pts(r,"fpts").toFixed(1)+' PF · '+pts(r,"fpts_against").toFixed(1)+' PA</small></div><small>'+esc(playoffResult(s,r.roster_id)||s.league.name||"LeFantasy")+'</small></div>').join("")+'</section><section class="profile-section"><div class="kicker">PERSONAL RECORDS</div><h2>Highs & Lows</h2><div class="profile-week-grid">'+[
  ["BEST WEEK",best,best?.points],["LOWEST WEEK",worst,worst?.points],["BIGGEST WIN",big,big?(big.points-big.opp):null],["TOUGHEST LOSS",heart,heart?(heart.opp-heart.points):null]
  ].map(([label,x,val])=>'<div class="profile-week"><small>'+label+'</small><strong>'+(val==null?"—":Number(val).toFixed(1)+(label.includes("WIN")||label.includes("LOSS")?" pts":""))+'</strong><span>'+(x?esc(x.season)+" · Week "+x.week+" · vs "+esc(x.oppName):"No verified result")+'</span></div>').join("")+'</div></section></div><section class="profile-section"><div class="kicker">HEAD TO HEAD</div><h2>Rivalry Ledger</h2>'+(rivalryRows.length?rivalryRows.map(x=>'<div class="profile-rival"><div><b>'+esc(x.name)+'</b><small>'+x.g+' meeting'+(x.g===1?"":"s")+' · '+x.pf.toFixed(1)+' PF</small></div><span>'+x.w+'–'+x.l+(x.t?"–"+x.t:"")+'</span></div>').join(""):'<div class="empty">No verified rivalries yet.</div>')+'</section></div>';
  route("manager");
+}
+function playoffResult(s,rosterId){
+ const b=s.winners||[];if(!b.length)return null;
+ const involved=b.filter(g=>g.t1===rosterId||g.t2===rosterId);
+ if(!involved.length)return null;
+ const finals=b.filter(g=>g.p===1||g.p===2).sort((a,b)=>(b.r||0)-(a.r||0));
+ const title=finals.find(g=>g.p===1);
+ if(title&&(title.t1===rosterId||title.t2===rosterId)){if(title.w===rosterId)return "Champion";if(title.l===rosterId)return "Runner-up"}
+ const place=b.filter(g=>g.p&&g.w===rosterId).sort((a,b)=>a.p-b.p)[0];
+ return place?"Finished "+place.p+(place.p===3?"rd":place.p===2?"nd":"th"):"Playoffs";
+}
+function renderPostseason(){
+ const totals=new Map();
+ state.history.forEach(s=>s.rosters.filter(r=>r.owner_id).forEach(r=>{const res=playoffResult(s,r.roster_id);if(!res)return;const x=totals.get(r.owner_id)||{name:managerName(s.users,r.owner_id),titles:0,finals:0,playoffs:0};x.name=managerName(s.users,r.owner_id);x.playoffs++;if(res==="Champion"){x.titles++;x.finals++}else if(res==="Runner-up")x.finals++;totals.set(r.owner_id,x)}));
+ state.postseason=totals;
+ renderHistory();
 }
