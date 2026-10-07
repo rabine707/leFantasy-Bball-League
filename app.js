@@ -42,7 +42,7 @@ async function loadDeepHistory(){
   data.forEach(({w,rows})=>{const groups=new Map();rows.forEach(r=>{if(!r.matchup_id)return;const a=groups.get(r.matchup_id)||[];a.push(r);groups.set(r.matchup_id,a)});groups.forEach(pair=>{if(pair.length!==2)return;pair.forEach((r,i)=>{const roster=s.rosters.find(x=>x.roster_id===r.roster_id);if(!roster?.owner_id)return;weekly.push({season:s.league.season,week:w,name:managerName(s.users,roster.owner_id),points:Number(r.points||0),opp:Number(pair[1-i].points||0)})})})});
   for(const d of s.drafts||[])d.picks=await get("/draft/"+d.draft_id+"/picks").catch(()=>[]);
  }
- renderDeepHistory(weekly);renderAnalytics();renderRivalries();renderPostseason();
+ renderDeepHistory(weekly);renderAnalytics();renderRivalries();renderPostseason();renderSeasonHQ();
 }
 function renderDeepHistory(weekly){
  const completed=weekly.filter(x=>Number.isFinite(x.points)&&Number.isFinite(x.opp)&&(x.points>0||x.opp>0));
@@ -152,4 +152,18 @@ function renderPostseason(){
  state.history.forEach(s=>s.rosters.filter(r=>r.owner_id).forEach(r=>{const res=playoffResult(s,r.roster_id);if(!res)return;const x=totals.get(r.owner_id)||{name:managerName(s.users,r.owner_id),titles:0,finals:0,playoffs:0};x.name=managerName(s.users,r.owner_id);x.playoffs++;if(res==="Champion"){x.titles++;x.finals++}else if(res==="Runner-up")x.finals++;totals.set(r.owner_id,x)}));
  state.postseason=totals;
  renderHistory();
+}
+function renderSeasonHQ(){
+ const s=state.history.find(x=>String(x.league.league_id)===String(LEAGUE_ID))||state.history[0];if(!s)return;
+ const standings=s.rosters.filter(r=>r.owner_id).map(r=>({r,name:managerName(s.users,r.owner_id),w:Number(r.settings?.wins||0),l:Number(r.settings?.losses||0),t:Number(r.settings?.ties||0),pf:pts(r,"fpts"),pa:pts(r,"fpts_against")})).sort((a,b)=>b.w-a.w||a.l-b.l||b.pf-a.pf);
+ $("#liveStandings").innerHTML=standings.map((x,i)=>'<div class="live-row"><span class="seed">'+(i+1)+'</span><div><b>'+esc(x.name)+'</b><small>'+x.pf.toFixed(1)+' PF · '+x.pa.toFixed(1)+' PA</small></div><span>'+x.w+"–"+x.l+(x.t?"–"+x.t:"")+'</span><span>'+((x.w+x.l+x.t)?((x.w+.5*x.t)/(x.w+x.l+x.t)*100).toFixed(0):"0")+'%</span></div>').join("")||'<div class="empty">Standings will appear when rosters are active.</div>';
+ const playoffTeams=Number(s.league.settings?.playoff_teams||s.league.settings?.playoff_team_count||0);
+ $("#playoffMeta").textContent=playoffTeams?playoffTeams+" playoff spots":"Playoff field not exposed yet";
+ $("#playoffRace").innerHTML=standings.map((x,i)=>'<div class="race-row '+(playoffTeams&&i<playoffTeams?"in ":"")+(playoffTeams&&i===playoffTeams?"cut":"")+'"><span class="seed">'+(i+1)+'</span><div><b>'+esc(x.name)+'</b><small>'+x.pf.toFixed(1)+' points scored</small></div><span>'+x.w+"–"+x.l+'</span><span class="race-tag">'+(playoffTeams?(i<playoffTeams?"IN":i===playoffTeams?"CUT LINE":"OUT"):"—")+'</span></div>').join("");
+ const scored=(s.matchups||[]).filter(x=>x.rows.some(r=>Number(r.points)>0));let week=scored.length?Math.max(...scored.map(x=>x.w)):0;
+ if(!week){$("#seasonWeek").textContent=String(s.league.status||"preseason").toUpperCase();$("#matchupGrid").innerHTML='<div class="empty">No scored matchup week has been returned by Sleeper yet. Season HQ is ready for opening week.</div>';return}
+ const entry=s.matchups.find(x=>x.w===week),groups=new Map();(entry?.rows||[]).forEach(r=>{if(!r.matchup_id)return;const a=groups.get(r.matchup_id)||[];a.push(r);groups.set(r.matchup_id,a)});
+ $("#seasonWeek").textContent="Week "+week;$("#matchupHeading").textContent="Week "+week+" Matchup Desk";
+ const games=[...groups.values()].filter(x=>x.length===2);
+ $("#matchupGrid").innerHTML=games.length?games.map((pair,i)=>{const sides=pair.map(r=>{const ro=s.rosters.find(x=>x.roster_id===r.roster_id);return {name:ro?managerName(s.users,ro.owner_id):"Unknown",points:Number(r.points||0)}}).sort((a,b)=>b.points-a.points);return '<article class="matchup-card"><small>GAME '+String(i+1).padStart(2,"0")+'</small>'+sides.map((x,j)=>'<div class="matchup-side"><b>'+esc(x.name)+(j===0&&x.points!==sides[1].points?" · LEADS":"")+'</b><span>'+x.points.toFixed(1)+'</span></div>').join("")+'</article>'}).join(""):'<div class="empty">Sleeper returned Week '+week+' scores but no paired matchups yet.</div>';
 }
