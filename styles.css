@@ -187,3 +187,13 @@
 .gm2-fatigue{display:block;font-size:9px!important;font-weight:800!important;letter-spacing:.01em;line-height:1.25}.gm2-fatigue-low{color:#248b5b!important}.gm2-fatigue-medium{color:#c68a28!important}.gm2-fatigue-high{color:#d44b45!important}.gm2-fatigue-detail{margin:10px 0 4px}.gm2-fatigue-detail>div:first-child{display:flex;justify-content:space-between;gap:10px;font-size:11px}.gm2-fatigue-detail small{font-size:10px}.gm2-fatigue-track{height:8px;background:rgba(127,127,127,.2);border-radius:99px;overflow:hidden;margin:6px 0}.gm2-fatigue-fill{display:block;height:100%;border-radius:99px;background:currentColor}.gm2-fatigue-fill.gm2-fatigue-low{background:#248b5b}.gm2-fatigue-fill.gm2-fatigue-medium{background:#c68a28}.gm2-fatigue-fill.gm2-fatigue-high{background:#d44b45}
 
 .gm2-trade-collapse{margin-top:10px;border:1px solid currentColor;border-radius:10px;overflow:hidden}.gm2-trade-collapse>summary{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;padding:12px;font-weight:800;font-size:12px;list-style:none;min-height:44px}.gm2-trade-collapse>summary::-webkit-details-marker{display:none}.gm2-trade-collapse>summary span{font-size:10px;opacity:.7}.gm2-trade-collapse[open]>summary span{transform:rotate(180deg)}.gm2-trade-collapse .gm2-trade{margin:0;border:0;border-top:1px solid rgba(127,127,127,.25);border-radius:0}
+
+/* Keep soundtrack controls within reach as the page scrolls. */
+.site-header{position:sticky;top:0;z-index:20}
+.site-header .topbar{position:relative;top:auto}
+.league-player{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px clamp(15px,4vw,54px);background:var(--green);color:var(--white);border-bottom:2px solid var(--ink)}
+.league-player-title{display:flex;flex-direction:column;gap:3px;min-width:0}
+.league-player-title span{font-size:8px;letter-spacing:.15em;font-weight:800}
+.league-player-title strong{font:700 15px Georgia,serif}
+.league-player audio{display:block;width:280px;max-width:60%;height:36px;color-scheme:light}
+@media(max-width:480px){.league-player{gap:8px;padding:7px 12px}.league-player-title strong{font-size:13px}.league-player audio{width:210px;max-width:62%}}
