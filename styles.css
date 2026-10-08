@@ -113,3 +113,37 @@
 .gm2-synergy-card small{display:block;color:#645e56;margin-top:3px}
 .gm2-synergy-card p{font-size:.84rem;line-height:1.4;margin:5px 0 0;color:#514b44}
 .gm2-synergy>small{display:block;font-size:.72rem;color:#72695f;margin-top:10px}
+
+/* GM Survival: compact phone-first layout */
+.gm2-synergy summary{cursor:pointer;list-style:none;min-height:38px;display:flex;align-items:center;justify-content:space-between}
+.gm2-synergy summary::-webkit-details-marker{display:none}
+.gm2-synergy summary:after{content:'⌄';font-size:19px;margin-left:7px}
+.gm2-synergy[open] summary:after{content:'⌃'}
+@media(max-width:600px){
+.gm2-shell{padding-top:12px!important;padding-bottom:12px!important}
+.gm2-cover{gap:12px!important;padding:8px 0 12px!important}
+.gm2-cover h2{font-size:clamp(36px,10vw,54px)!important;line-height:.93!important;margin:6px 0 10px!important}
+.gm2-cover p{font-size:14px!important;line-height:1.35!important;margin:8px 0 12px!important}
+.gm2-cover .primary{padding:12px 16px!important;min-height:44px!important}
+.gm2-score{margin:12px 0!important;grid-template-columns:repeat(2,minmax(0,1fr))!important}
+.gm2-score>div{padding:8px 10px!important;min-width:0}
+.gm2-score>div:last-child{grid-column:1/-1;padding:7px 10px!important}
+.gm2-score strong{font-size:19px!important;margin-top:2px!important}
+.gm2-synergy{padding:8px 12px!important;margin:10px 0 14px!important}
+.gm2-synergy-title{margin-bottom:0!important;letter-spacing:0!important}
+.gm2-synergy[open] .gm2-synergy-title{margin-bottom:8px!important}
+.gm2-layout{gap:18px!important}
+.gm2-layout h3{font-size:clamp(27px,8vw,35px)!important;margin:4px 0 10px!important}
+.gm2-court-label{margin:8px 0 6px!important}
+.gm2-hardwood{min-height:0!important;aspect-ratio:1/1.04!important}
+.gm2-court-player{padding:4px!important;min-height:0!important;width:30%!important}
+.gm2-court-player>span{font-size:10px!important}
+.gm2-court-player>small{font-size:8px!important;line-height:1.12!important}
+.gm2-court-player>b{font-size:clamp(10px,2.7vw,13px)!important}
+.gm2-court-player>strong{font-size:17px!important}
+.gm2-bench{gap:6px!important}
+.gm2-bench .gm2-player{padding:8px!important;min-height:64px!important}
+.gm2-bench .gm2-player>b{font-size:13px!important}
+.gm2-bench .gm2-player>strong{font-size:22px!important}
+.gm2-layout aside{padding-top:12px!important}
+}
