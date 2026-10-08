@@ -181,3 +181,5 @@
 .gm2-franchise-line{font-size:11px;font-weight:800;letter-spacing:.05em;padding:5px 0;color:var(--muted)}.gm2-trade{margin:10px 0 0;padding:10px;border:1px solid var(--ink);font-size:12px}.gm2-trade p{margin:6px 0}.gm2-trade small{font-size:10px;color:var(--muted)}.gm2-trade>div{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.gm2-trade button{min-height:42px;padding:9px 12px;cursor:pointer}
 
 .gm2-trade-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:8px 0}.gm2-trade-grid button{text-align:left;white-space:normal;min-width:0;font-size:11px}.gm2-trade-grid button small{display:block;margin-top:4px;font-size:9px}@media(max-width:380px){.gm2-trade-grid{grid-template-columns:1fr}}
+
+.gm2-player-menu{margin:10px 0;padding:12px;border:1px solid currentColor;border-radius:10px}.gm2-player-menu[hidden]{display:none!important}.gm2-player-menu>strong,.gm2-player-menu>small{display:block}.gm2-player-menu>small{font-size:10px;margin-top:3px}.gm2-player-menu>div{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}.gm2-player-menu button{min-height:44px;padding:9px 12px;cursor:pointer}
