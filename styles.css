@@ -89,9 +89,9 @@
 .gm2-court{margin-bottom:16px}
 .gm2-court-label{font-size:10px;font-weight:900;letter-spacing:.1em;margin:12px 0 8px}
 .gm2-hardwood{position:relative;isolation:isolate;aspect-ratio:1.12;min-height:300px;overflow:hidden;border-radius:14px;background:repeating-linear-gradient(90deg,#d6a66d 0,#d6a66d 27px,#dcae78 28px,#dcae78 55px);border:3px solid #80532f}
-.gm2-court-lines{position:absolute;inset:9px;border:2px solid #fff9;pointer-events:none;border-radius:3px}
+.gm2-court-lines{position:absolute;inset:9px;border:2px solid #fff9;pointer-events:none;border-radius:3px;overflow:hidden}
 .gm2-key{position:absolute;top:-2px;left:35%;width:30%;height:31%;border:2px solid #fff9;border-top:0}
-.gm2-arc{position:absolute;top:-40%;left:12%;width:76%;height:100%;border:2px solid #fff9;border-radius:50%}
+.gm2-arc{position:absolute;top:8%;left:12%;width:76%;height:84%;box-sizing:border-box;border:2px solid #fff9;border-radius:50%}
 .gm2-hoop{position:absolute;top:2%;left:calc(50% - 10px);width:20px;height:20px;border:3px solid #fff;border-radius:50%}
 .gm2-court-player{position:absolute;z-index:1;width:29%;min-height:70px!important;padding:6px!important;border:2px solid #fff!important;border-radius:10px;background:#fff7e9!important;color:#242424!important;box-shadow:0 3px 9px #54351d55;display:flex!important;flex-direction:column;align-items:center;text-align:center!important;gap:3px;transform:translate(-50%,-50%);touch-action:manipulation}
 .gm2-court-player>span{font-weight:900!important;font-size:11px!important;color:#80532f!important}
