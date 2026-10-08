@@ -83,3 +83,22 @@
 
 /* Compact navigation */
 .topbar nav{align-items:center}.nav-more{position:relative}.nav-more-menu{position:absolute;right:0;top:100%;min-width:170px;z-index:40;padding:7px;background:var(--paper);border:2px solid var(--ink);box-shadow:5px 5px 0 rgba(23,23,19,.18);display:flex;flex-direction:column;align-items:stretch}.nav-more-menu[hidden]{display:none!important}.topbar nav .nav-more-menu button{text-align:left;white-space:nowrap;padding:13px 14px}.topbar nav .nav-more-menu button:hover{background:var(--paper2)}.topbar nav .nav-more:has(.nav-more-menu button.active)>button{color:var(--ink);text-decoration:underline;text-underline-offset:5px}@media(max-width:700px){.topbar nav{overflow:visible;width:100%;justify-content:space-between;gap:1px}.topbar nav>button,.topbar nav>.nav-more>button{font-size:10px;letter-spacing:0;padding:11px 6px;white-space:nowrap}.nav-more-menu{right:0;top:calc(100% + 6px)}}
+
+
+/* GM Survival: five interactive players on a responsive half court. */
+.gm2-court{margin-bottom:16px}
+.gm2-court-label{font-size:10px;font-weight:900;letter-spacing:.1em;margin:12px 0 8px}
+.gm2-hardwood{position:relative;isolation:isolate;aspect-ratio:1.12;min-height:300px;overflow:hidden;border-radius:14px;background:repeating-linear-gradient(90deg,#d6a66d 0,#d6a66d 27px,#dcae78 28px,#dcae78 55px);border:3px solid #80532f}
+.gm2-court-lines{position:absolute;inset:9px;border:2px solid #fff9;pointer-events:none;border-radius:3px}
+.gm2-key{position:absolute;top:-2px;left:35%;width:30%;height:31%;border:2px solid #fff9;border-top:0}
+.gm2-arc{position:absolute;top:-40%;left:12%;width:76%;height:100%;border:2px solid #fff9;border-radius:50%}
+.gm2-hoop{position:absolute;top:2%;left:calc(50% - 10px);width:20px;height:20px;border:3px solid #fff;border-radius:50%}
+.gm2-court-player{position:absolute;z-index:1;width:29%;min-height:70px!important;padding:6px!important;border:2px solid #fff!important;border-radius:10px;background:#fff7e9!important;color:#242424!important;box-shadow:0 3px 9px #54351d55;display:flex!important;flex-direction:column;align-items:center;text-align:center!important;gap:3px;transform:translate(-50%,-50%);touch-action:manipulation}
+.gm2-court-player>span{font-weight:900!important;font-size:11px!important;color:#80532f!important}
+.gm2-court-player>b{font-size:clamp(10px,2.6vw,14px)!important;line-height:1.1;overflow-wrap:anywhere}
+.gm2-court-player>small{font-size:9px!important;letter-spacing:0!important}
+.gm2-court-player>strong{font-size:18px!important;grid-row:auto!important;grid-column:auto!important}
+.gm2-court-player>em{font-size:9px!important}
+.gm2-slot-0{left:50%;top:80%}.gm2-slot-1{left:19%;top:57%}.gm2-slot-2{left:81%;top:57%}.gm2-slot-3{left:29%;top:23%}.gm2-slot-4{left:71%;top:23%}
+.gm2-bench{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(max-width:420px){.gm2-hardwood{min-height:310px;aspect-ratio:1/1.18}.gm2-court-player{width:31%;padding:4px!important}.gm2-court-player>small{font-size:8px!important}.gm2-court-player>strong{font-size:16px!important}}
