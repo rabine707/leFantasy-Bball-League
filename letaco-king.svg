@@ -1,24 +1,29 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="96" height="112" viewBox="0 0 48 56" shape-rendering="crispEdges" role="img" aria-label="Pixel basketball king with a receding buzz cut, square beard, and wide grin">
-  <!-- Broad skull and squared jaw, with a close-cropped silhouette. -->
-  <path fill="#191419" d="M15 5h18v2h5v4h3v10h3v13h-3v10h-4v5h-5v3H16v-3h-5v-5H7V34H4V21h3V11h3V7h5z"/>
-  <path fill="#8f573b" d="M7 23h5v11H7zM36 23h5v11h-5z"/>
-  <path fill="#ad704a" d="M14 8h20v3h4v25h-3v7H13v-7h-3V12h4z"/>
-  <path fill="#c38a5b" d="M16 9h16v3h4v19h-3v7H15v-7h-3V14h4z"/>
-  <path fill="#d49a68" d="M18 10h12v3h3v9H15v-8h3zM14 29h7v5h-7zM28 29h6v5h-6z"/>
-  <!-- High central buzz cut; exposed temples keep the hairline receding. -->
-  <path fill="#292021" d="M17 7h14v2H17zM10 13h2v10H9v-7h1zM36 13h2v10h-3v-7h1z"/>
-  <path fill="#624334" d="M17 9h3v1h-3zM23 9h3v1h-3zM29 9h2v1h-2z"/>
-  <!-- Heavy brows and compact eyes, rather than large white eye blocks. -->
-  <path fill="#352523" d="M13 23h8v2h-8zM27 23h8v2h-8z"/>
-  <path fill="#f3e3ce" d="M14 26h7v3h-7zM27 26h7v3h-7z"/>
-  <path fill="#221b1d" d="M17 26h3v3h-3zM28 26h3v3h-3z"/>
-  <path fill="#945b3e" d="M23 26h3v6h3v3H19v-3h4z"/>
-  <path fill="#d39a67" d="M23 29h2v3h-2z"/>
-  <!-- Full jawline beard and a wide, shallow Taco Tuesday smile. -->
-  <path fill="#272023" d="M10 32h3v5h4v3h14v-3h4v-5h3v11h-3v5h-4v3H17v-3h-4v-5h-3z"/>
-  <path fill="#1d181c" d="M18 35h12v2h4v3H14v-3h4zM15 40h18v7H15z"/>
-  <path fill="#743c3a" d="M15 39h18v5H15zM18 44h12v2H18z"/>
-  <path fill="#fff0d8" d="M15 38h18v3H15zM18 41h12v1H18z"/>
-  <path fill="#b96c64" d="M21 44h7v1h-7z"/>
-  <path fill="#443032" d="M14 43h2v3h-2zM32 43h2v3h-2zM19 48h10v1H19z"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="112" viewBox="0 0 48 56" shape-rendering="crispEdges" role="img" aria-label="Pixel basketball king laughing with his chin raised, squinting eyes and mouth wide open">
+  <!-- Three-quarter head, lifted chin and short receding hair. -->
+  <path fill="#211a1b" d="M17 3h15v2h6v4h4v7h2v15h-3v10h-5v7h-7v4H17v-3h-6v-5H7V31H5V19h3v-8h4V6h5z"/>
+  <path fill="#9e613c" d="M16 6h16v3h6v10h3v12h-5v9h-7v7H17v-4h-5v-9H8V20h3v-9h5z"/>
+  <path fill="#b97b4e" d="M17 7h14v3h5v13h-3v10h-5v7H15v-7h-4V20h2v-9h4z"/>
+  <path fill="#cb905f" d="M18 8h11v3h4v9H15v-7h3zM11 23h9v6h-9z"/>
+  <!-- Close crop follows the back of the skull; bare temples stay visible. -->
+  <path fill="#302323" d="M21 4h11v2h5v4h3v9h-3v-7h-4V8H21z"/>
+  <path fill="#795036" d="M19 6h9v1h-9zM15 10h2v4h-2z"/>
+  <!-- Raised brows and eyes compressed into laughing crescents. -->
+  <path fill="#77472e" d="M17 13h9v1h-9zM19 11h7v1h-7z"/>
+  <path fill="#3b2922" d="M11 18h3v-2h6v2h2v2h-4v-2h-4v2h-3zM27 17h5v1h3v3h-3v-2h-5z"/>
+  <path fill="#6b402c" d="M12 22h8v1h-8zM28 22h6v1h-6z"/>
+  <!-- Broad projecting nose and visible ear make the angle readable. -->
+  <path fill="#d49661" d="M21 19h4v4h2v4H17v-4h4z"/>
+  <path fill="#885137" d="M17 26h4v2h-4zM24 26h3v2h-3z"/>
+  <path fill="#bc7e50" d="M37 22h5v2h2v6h-3v3h-5v-8h1z"/>
+  <path fill="#8e5036" d="M39 25h3v4h-3z"/>
+  <!-- Beard wraps an open, exuberant Taco Tuesday laugh. -->
+  <path fill="#2b2020" d="M9 29h4v5h2v8h6v3h8v-3h4v-9h2v-5h3v12h-3v6h-6v5H18v-3h-6v-5H9z"/>
+  <path fill="#261b1d" d="M17 29h10v2h4v4H13v-3h4z"/>
+  <path fill="#54282b" d="M14 32h14v3h3v7h-4v3H17v-3h-4v-7h1z"/>
+  <path fill="#28191e" d="M16 35h11v6H16z"/>
+  <!-- Curved upper teeth, a small lower row, and visible tongue. -->
+  <path fill="#fff0d9" d="M16 31h9v2h3v3h-3v-2h-9v3h-3v-3h3z"/>
+  <path fill="#c57871" d="M19 40h7v2h2v2H17v-2h2z"/>
+  <path fill="#edceb6" d="M16 43h3v1h8v2h-9v-1h-2z"/>
+  <path fill="#493030" d="M13 44h3v2h-3zM20 48h8v1h-8zM32 39h2v4h-2z"/>
 </svg>

@@ -2,7 +2,7 @@
 const c=document.getElementById('game'),g=c.getContext('2d'),stats=document.getElementById('stats'),play=document.getElementById('play');g.imageSmoothingEnabled=false;
 let x=180,items=[],score=0,miss=0,best=0,running=false,spawn=0,last=0,keys={},runId=0;try{best=Number(localStorage.getItem('letaco-best'))||0}catch{}
 function block(x,y,w,h,color){g.fillStyle=color;g.fillRect(Math.round(x),Math.round(y),w,h)}
-const kingSprite=new Image();let spriteReady=false;kingSprite.onload=()=>{spriteReady=true;draw()};kingSprite.src='./letaco-king.svg?v=2';
+const kingSprite=new Image();let spriteReady=false;kingSprite.onload=()=>{spriteReady=true;draw()};kingSprite.src='./letaco-king.svg?v=3';
 function king(){if(spriteReady){g.drawImage(kingSprite,Math.round(x-48),Math.round(430-56),96,112)}else{block(x-34,390,68,75,'#21171c');block(x-27,398,54,58,'#b7764b');block(x-20,420,12,8,'#fff');block(x+8,420,12,8,'#fff');block(x-16,442,32,14,'#28181b')}}
 function broccoli(t){const xx=t.x,yy=t.y;block(xx-4,yy+2,8,18,'#8dbd59');block(xx-13,yy-7,26,15,'#25783d');block(xx-17,yy-3,12,12,'#328a44');block(xx+5,yy-9,13,16,'#328a44');block(xx-8,yy-12,15,8,'#45a44c');block(xx-10,yy-4,5,5,'#61b757')}
 function taco(t){block(t.x-15,t.y,30,11,'#efb64b');block(t.x-12,t.y-5,24,6,'#f9d572');block(t.x-11,t.y-2,22,3,'#58aa54');block(t.x-10,t.y+4,20,3,'#bb5636')}
