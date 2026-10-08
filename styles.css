@@ -102,3 +102,14 @@
 .gm2-slot-0{left:50%;top:80%}.gm2-slot-1{left:19%;top:57%}.gm2-slot-2{left:81%;top:57%}.gm2-slot-3{left:29%;top:23%}.gm2-slot-4{left:71%;top:23%}
 .gm2-bench{grid-template-columns:repeat(2,minmax(0,1fr))}
 @media(max-width:420px){.gm2-hardwood{min-height:310px;aspect-ratio:1/1.18}.gm2-court-player{width:31%;padding:4px!important}.gm2-court-player>small{font-size:8px!important}.gm2-court-player>strong{font-size:16px!important}}
+
+/* GM scouting partnerships */
+.gm2-synergy{margin:14px 0 20px;padding:14px;border:1px solid rgba(102,75,49,.22);border-radius:14px;background:rgba(255,250,240,.76)}
+.gm2-synergy-title,.gm2-synergy-card>div{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.gm2-synergy-title{font-size:.8rem;letter-spacing:.05em;margin-bottom:10px}
+.gm2-synergy-title span{color:#92511f;font-weight:800}
+.gm2-synergy-card{padding:11px 0;border-top:1px solid rgba(102,75,49,.18)}
+.gm2-synergy-card b{font-size:.95rem}.gm2-synergy-card strong{font-size:.8rem;color:#915020}
+.gm2-synergy-card small{display:block;color:#645e56;margin-top:3px}
+.gm2-synergy-card p{font-size:.84rem;line-height:1.4;margin:5px 0 0;color:#514b44}
+.gm2-synergy>small{display:block;font-size:.72rem;color:#72695f;margin-top:10px}
