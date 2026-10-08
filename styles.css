@@ -147,3 +147,26 @@
 .gm2-bench .gm2-player>strong{font-size:22px!important}
 .gm2-layout aside{padding-top:12px!important}
 }
+
+/* Who Goes First: compact mobile matchup */
+@media(max-width:600px){
+.arcade-page .page-head{padding:8px 0 12px!important;margin-bottom:8px!important}
+.arcade-page .page-head>div{gap:6px!important}
+.arcade-head h1{font-size:clamp(38px,10vw,52px)!important;line-height:.9!important;letter-spacing:-.055em!important;margin:5px 0!important}
+.arcade-head p{font-size:13px!important;line-height:1.35!important;margin:7px 0!important;max-width:34em}
+.arcade-head .eyebrow{font-size:9px!important}
+.arcade-scorebar{grid-template-columns:1fr 1fr auto!important;gap:8px!important;padding:7px 0!important;margin-bottom:10px!important}
+.arcade-scorebar>div{display:flex!important;flex-direction:column!important;gap:1px!important}
+.arcade-scorebar small{font-size:8px!important}
+.arcade-scorebar strong{font-size:22px!important}
+.arcade-scorebar button{min-height:42px!important;padding:8px 12px!important;font-size:11px!important}
+.who-goes-first{grid-template-columns:1fr!important;min-height:0!important;gap:0!important}
+.arcade-player{min-height:125px!important;padding:13px 16px!important;gap:4px!important;justify-content:center!important}
+.arcade-player small{margin:0!important;font-size:9px!important}
+.arcade-player strong{font-size:clamp(25px,7vw,35px)!important;line-height:1!important;overflow-wrap:anywhere}
+.arcade-player span{margin:2px 0!important;font-size:10px!important}
+.arcade-player b{padding-top:7px!important;margin-top:3px!important;font-size:10px!important}
+.arcade-vs{min-height:29px!important;font-size:19px!important;line-height:1!important}
+.arcade-choice{min-height:150px!important;padding:14px!important}
+.arcade-footer{margin-top:10px!important;padding:10px 0!important}
+}
