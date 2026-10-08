@@ -175,3 +175,5 @@
 .gm2-player .gm2-ovr-up{color:#247a48!important}.gm2-player .gm2-ovr-down{color:#bc3e35!important}.gm2-player .gm2-ovr-even{color:inherit}
 .gm2-player .gm2-ovr-note{display:block!important;font-size:9px!important;line-height:1.25!important;font-weight:700!important;letter-spacing:.02em!important;color:#6c6359!important;white-space:normal!important}
 .gm2-player .gm2-ovr-up+.gm2-ovr-note{color:#247a48!important}.gm2-player .gm2-ovr-down+.gm2-ovr-note{color:#bc3e35!important}
+
+.gm2-player .gm2-development{display:block;font-size:8px!important;line-height:1.25!important;color:#a46620!important;font-weight:800!important;letter-spacing:.02em!important;white-space:normal!important}
