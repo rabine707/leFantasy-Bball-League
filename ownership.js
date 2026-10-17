@@ -1,7 +1,7 @@
 (()=>{"use strict";
 const API="https://api.sleeper.app/v1",ROOT="1406415989997846528",$=s=>document.querySelector(s);
 const safe=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const records=new Map(),audit=[],identities=new Map();
+const records=new Map(),audit=[],identities=new Map(),historicalUsers=new Map();
 const USERNAME_ALIASES={"lukekornet":"19crimes"};
 const canonicalUsername=name=>{let key=String(name||"").replace(/^@/,"").toLowerCase();const seen=new Set();while(USERNAME_ALIASES[key]&&!seen.has(key)){seen.add(key);key=USERNAME_ALIASES[key]}return key};let incomplete=0,seasonCount=0,eventCount=0;const flag=(type,season,uid,pid,detail,txid)=>audit.push({type,season,uid,pid,detail,txid:txid||""});
 async function get(p){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);try{const r=await fetch(API+p,{signal:controller.signal});if(!r.ok)throw Error("Sleeper "+r.status);return await r.json()}finally{clearTimeout(timer)}}
@@ -9,7 +9,7 @@ const stamp=v=>{const n=Number(v);return Number.isFinite(n)&&n>0?(n<1e11?n*1000:
 function record(uid,pid,name,season){const key=uid+"|"+pid;if(!records.has(key))records.set(key,{uid,pid,name,player:pid,longest:0,total:0,stints:0,seasons:new Set(),closed:0,open:0,activeDays:0});const x=records.get(key);x.name=name;x.seasons.add(season);return x}
 function calculate(league,users,rosters,drafts,transactions,isCurrent){
  const season=String(league.season||"Unknown"),names=new Map(users.map(u=>[String(u.user_id),u.metadata?.team_name||u.display_name||u.username||"Manager"]));
- for(const u of users){const uid=String(u.user_id),previous=identities.get(uid);identities.set(uid,{username:u.username||previous?.username||"",display:u.display_name||previous?.display||"",team:previous?.team||"",latest:previous?.latest||""})}for(const r of rosters){if(!r.owner_id)continue;const uid=String(r.owner_id),v=identities.get(uid)||{};const u=users.find(x=>String(x.user_id)===uid);const team=u?.metadata?.team_name||u?.display_name||u?.username||v.team||"Manager";identities.set(uid,{...v,team:v.latest?v.team:team,latest:v.latest||season})}
+ for(const u of users){const uid=String(u.user_id),history=historicalUsers.get(uid)||{uid,usernames:new Set(),teams:new Set(),seasons:new Set()};if(u.username)history.usernames.add(u.username);if(u.display_name)history.usernames.add(u.display_name);if(u.metadata?.team_name)history.teams.add(u.metadata.team_name);history.seasons.add(season);historicalUsers.set(uid,history);const previous=identities.get(uid);identities.set(uid,{username:u.username||previous?.username||"",display:u.display_name||previous?.display||"",team:previous?.team||"",latest:previous?.latest||""})}for(const r of rosters){if(!r.owner_id)continue;const uid=String(r.owner_id),v=identities.get(uid)||{};const u=users.find(x=>String(x.user_id)===uid);const team=u?.metadata?.team_name||u?.display_name||u?.username||v.team||"Manager";identities.set(uid,{...v,team:v.latest?v.team:team,latest:v.latest||season})}
  const rosterOwner=new Map(rosters.filter(r=>r.owner_id).map(r=>[String(r.roster_id),String(r.owner_id)]));
  const events=[],active=new Map();const now=Date.now();
  // Provisional season window: 24 weeks from the earliest available draft start.
@@ -51,6 +51,7 @@ function mergeConfirmedAliases(){
  }
  records.clear();for(const [key,x] of merged)records.set(key,x);
 }
+function renderDirectory(){const el=$("#manager-directory");if(!el)return;const entries=[...historicalUsers.values()].sort((a,b)=>[...a.usernames][0]?.localeCompare([...b.usernames][0]||"")||0);el.innerHTML=entries.map(x=>{const usernames=[...x.usernames],teams=[...x.teams];return "<tr><td>"+safe(usernames.join(", ")||"Unknown")+"</td><td>"+safe(teams.join(" · ")||"—")+"</td><td>"+safe([...x.seasons].sort().join(", "))+"</td><td><code>"+safe(x.uid)+"</code></td></tr>"}).join("")||"<tr><td colspan=\"4\">No manager records found.</td></tr>";$("#manager-directory-count").textContent=entries.length+" unique Sleeper user IDs across linked seasons. Names are preserved as reported by Sleeper; matching people across different IDs requires confirmation."}
 function render(){const q=$("#search").value.trim().toLowerCase(),sort=$("#sort").value;
  const value=x=>sort==="seasons"?x.seasons.size:sort==="total"?x.total+x.activeDays:x[sort];const a=[...records.values()].filter(x=>(x.name+" "+x.player+" "+managerLabel(x).team+" "+managerLabel(x).username).toLowerCase().includes(q)).sort((x,y)=>value(y)-value(x)||y.total+y.activeDays-x.total-x.activeDays);
  const fmt=x=>x.closed||x.activeDays?x.longest.toFixed(1)+"d"+(x.activeDays?" †":""):"—",total=x=>x.closed||x.activeDays?(x.total+x.activeDays).toFixed(1)+"d"+(x.activeDays?" †":""):"—";
@@ -68,7 +69,7 @@ async function run(){try{let league=await get("/league/"+ROOT),seasons=[];const 
   const tx=[],txIds=new Set();results.forEach(r=>{if(r.status==="fulfilled"&&Array.isArray(r.value)){for(const t of r.value){const key=String(t.transaction_id||JSON.stringify(t));if(!txIds.has(key)){txIds.add(key);tx.push(t)}}}else incomplete++});
   calculate(s,users,rosters,drafts,tx,String(id)===ROOT);seasonCount++;$("#status").textContent=seasonCount+" of "+seasons.length+" seasons processed · "+records.size+" records (loading player names…)";
  }
- mergeConfirmedAliases();
+ mergeConfirmedAliases();renderDirectory();
  try{const players=await get("/players/nba");for(const x of records.values()){const p=players[x.pid];if(p)x.player=[p.first_name,p.last_name].filter(Boolean).join(" ")||x.pid}}catch{incomplete++}
  $("#status").textContent=seasonCount+" linked seasons · "+eventCount+" ownership events · "+(incomplete?incomplete+" unresolved events/requests · ":"")+"† Active streaks stop at the estimated season end (24 weeks after draft start); historical open streaks excluded.";
  $("#stats").innerHTML=[["Manager-player pairs",records.size],["Seasons",seasonCount],["Recorded acquisitions",[...records.values()].reduce((n,x)=>n+x.stints,0)]].map(([k,v])=>'<div class="stat"><small>'+k+'</small><strong>'+v+"</strong></div>").join("");render();renderAudit();
