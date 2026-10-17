@@ -32,12 +32,21 @@ function calculate(league,users,rosters,drafts,transactions,isCurrent){
  for(const [key,t] of active){const [uid,pid]=key.split("|");const x=record(uid,pid,names.get(uid)||"Manager",season);x.open++;if(isCurrent){const roster=rosters.find(r=>String(r.owner_id)===uid&&(r.players||[]).map(String).includes(pid));if(!roster){flag("Roster mismatch",season,uid,pid,"Recorded as held, but absent from current roster")}if(roster&&t<=now){const days=duration(t,now);if(days!==null){x.activeDays=Math.max(x.activeDays,days);x.longest=Math.max(x.longest,days)}}}}
 }
 function renderAudit(){const root=$("#audit-rows");if(!root)return;const q=$("#audit-search").value.trim().toLowerCase(),filter=$("#audit-filter").value;const rows=audit.filter(x=>(filter==="all"||x.type===filter)&&(x.type+" "+x.season+" "+x.uid+" "+x.pid+" "+x.detail).toLowerCase().includes(q));$("#audit-summary").textContent=audit.length+" flagged events · "+rows.length+" shown. Flags are potential inconsistencies, not confirmed errors.";root.innerHTML=rows.slice(0,500).map(x=>"<tr><td>"+safe(x.season)+"</td><td>"+safe(x.type)+"</td><td>"+safe(x.uid)+"</td><td>"+safe(x.pid)+"</td><td>"+safe(x.detail)+"</td><td>"+safe(x.txid)+"</td></tr>").join("")||'<tr><td colspan="6">No matching flags.</td></tr>'}
-const managerLabel=x=>{const i=identities.get(x.uid)||{},team=i.team||x.name,username=i.username||i.display||"";return {team,username}};
+const identityKeys=i=>[i?.username,i?.display,i?.team].filter(Boolean).map(canonicalUsername);
+const isConfirmedAlias=i=>identityKeys(i).includes("19crimes");
+const managerLabel=x=>{const i=identities.get(x.uid)||{};if(isConfirmedAlias(i)||canonicalUsername(x.name)==="19crimes")return {team:"Adolf Silver",username:"19Crimes"};return {team:i.team||x.name,username:i.username||i.display||""}};
 function mergeConfirmedAliases(){
- const canonicalIds=new Map();for(const [uid,i] of identities){const key=canonicalUsername(i.username);if(!key)continue;const preferred=String(i.username||"").toLowerCase()===key;if(!canonicalIds.has(key)||preferred)canonicalIds.set(key,uid)}
- const merged=new Map();for(const x of records.values()){
-  const identity=identities.get(x.uid),canonical=canonicalUsername(identity?.username),target=canonicalIds.get(canonical)||x.uid,key=target+"|"+x.pid;
-  if(!merged.has(key)){merged.set(key,{...x,uid:target,seasons:new Set(x.seasons)});continue}
+ // Prefer the current-season 19Crimes account; historical aliases may have different IDs.
+ const matching=[...identities].filter(([,i])=>isConfirmedAlias(i));
+ const preferred=matching.find(([,i])=>String(i.username||"").toLowerCase()==="19crimes"&&i.latest)||matching.find(([,i])=>String(i.display||"").toLowerCase()==="19crimes")||matching[0];
+ if(!preferred)return;
+ const target=preferred[0];
+ identities.set(target,{...identities.get(target),username:"19Crimes",team:"Adolf Silver"});
+ const merged=new Map();
+ for(const x of records.values()){
+  const alias=isConfirmedAlias(identities.get(x.uid))||canonicalUsername(x.name)==="19crimes";
+  const uid=alias?target:x.uid,key=uid+"|"+x.pid;
+  if(!merged.has(key)){merged.set(key,{...x,uid,seasons:new Set(x.seasons)});continue}
   const dest=merged.get(key);dest.longest=Math.max(dest.longest,x.longest);dest.total+=x.total;dest.stints+=x.stints;dest.closed+=x.closed;dest.open+=x.open;dest.activeDays+=x.activeDays;for(const season of x.seasons)dest.seasons.add(season);
  }
  records.clear();for(const [key,x] of merged)records.set(key,x);
@@ -57,7 +66,7 @@ async function run(){try{let league=await get("/league/"+ROOT),seasons=[];const 
   const weeks=Math.min(30,Math.max(19,Number(s.settings?.playoff_week_start||19)+5));
   const results=[];for(let offset=0;offset<=weeks;offset+=6){const batch=await Promise.allSettled(Array.from({length:Math.min(6,weeks+1-offset)},(_,i)=>get("/league/"+id+"/transactions/"+(offset+i))));results.push(...batch);$("#status").textContent="Scanning "+s.season+" · transaction weeks "+Math.min(offset+6,weeks+1)+"/"+(weeks+1)+"…"}
   const tx=[],txIds=new Set();results.forEach(r=>{if(r.status==="fulfilled"&&Array.isArray(r.value)){for(const t of r.value){const key=String(t.transaction_id||JSON.stringify(t));if(!txIds.has(key)){txIds.add(key);tx.push(t)}}}else incomplete++});
-  calculate(s,users,rosters,drafts,tx,String(id)===ROOT);seasonCount++;$("#status").textContent=seasonCount+" of "+seasons.length+" seasons processed · "+records.size+" records (loading player names…)";render();renderAudit();
+  calculate(s,users,rosters,drafts,tx,String(id)===ROOT);seasonCount++;$("#status").textContent=seasonCount+" of "+seasons.length+" seasons processed · "+records.size+" records (loading player names…)";
  }
  mergeConfirmedAliases();
  try{const players=await get("/players/nba");for(const x of records.values()){const p=players[x.pid];if(p)x.player=[p.first_name,p.last_name].filter(Boolean).join(" ")||x.pid}}catch{incomplete++}
