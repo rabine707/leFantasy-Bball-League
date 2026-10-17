@@ -1,7 +1,9 @@
 (()=>{"use strict";
 const API="https://api.sleeper.app/v1",ROOT="1406415989997846528",$=s=>document.querySelector(s);
 const safe=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const records=new Map(),audit=[],identities=new Map();let incomplete=0,seasonCount=0,eventCount=0;const flag=(type,season,uid,pid,detail,txid)=>audit.push({type,season,uid,pid,detail,txid:txid||""});
+const records=new Map(),audit=[],identities=new Map();
+const USERNAME_ALIASES={"lukekornet":"19crimes"};
+const canonicalUsername=name=>{let key=String(name||"").replace(/^@/,"").toLowerCase();const seen=new Set();while(USERNAME_ALIASES[key]&&!seen.has(key)){seen.add(key);key=USERNAME_ALIASES[key]}return key};let incomplete=0,seasonCount=0,eventCount=0;const flag=(type,season,uid,pid,detail,txid)=>audit.push({type,season,uid,pid,detail,txid:txid||""});
 async function get(p){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);try{const r=await fetch(API+p,{signal:controller.signal});if(!r.ok)throw Error("Sleeper "+r.status);return await r.json()}finally{clearTimeout(timer)}}
 const stamp=v=>{const n=Number(v);return Number.isFinite(n)&&n>0?(n<1e11?n*1000:n):null};
 function record(uid,pid,name,season){const key=uid+"|"+pid;if(!records.has(key))records.set(key,{uid,pid,name,player:pid,longest:0,total:0,stints:0,seasons:new Set(),closed:0,open:0,activeDays:0});const x=records.get(key);x.name=name;x.seasons.add(season);return x}
@@ -31,6 +33,15 @@ function calculate(league,users,rosters,drafts,transactions,isCurrent){
 }
 function renderAudit(){const root=$("#audit-rows");if(!root)return;const q=$("#audit-search").value.trim().toLowerCase(),filter=$("#audit-filter").value;const rows=audit.filter(x=>(filter==="all"||x.type===filter)&&(x.type+" "+x.season+" "+x.uid+" "+x.pid+" "+x.detail).toLowerCase().includes(q));$("#audit-summary").textContent=audit.length+" flagged events · "+rows.length+" shown. Flags are potential inconsistencies, not confirmed errors.";root.innerHTML=rows.slice(0,500).map(x=>"<tr><td>"+safe(x.season)+"</td><td>"+safe(x.type)+"</td><td>"+safe(x.uid)+"</td><td>"+safe(x.pid)+"</td><td>"+safe(x.detail)+"</td><td>"+safe(x.txid)+"</td></tr>").join("")||'<tr><td colspan="6">No matching flags.</td></tr>'}
 const managerLabel=x=>{const i=identities.get(x.uid)||{},team=i.team||x.name,username=i.username||i.display||"";return {team,username}};
+function mergeConfirmedAliases(){
+ const canonicalIds=new Map();for(const [uid,i] of identities){const key=canonicalUsername(i.username);if(!key)continue;const preferred=String(i.username||"").toLowerCase()===key;if(!canonicalIds.has(key)||preferred)canonicalIds.set(key,uid)}
+ const merged=new Map();for(const x of records.values()){
+  const identity=identities.get(x.uid),canonical=canonicalUsername(identity?.username),target=canonicalIds.get(canonical)||x.uid,key=target+"|"+x.pid;
+  if(!merged.has(key)){merged.set(key,{...x,uid:target,seasons:new Set(x.seasons)});continue}
+  const dest=merged.get(key);dest.longest=Math.max(dest.longest,x.longest);dest.total+=x.total;dest.stints+=x.stints;dest.closed+=x.closed;dest.open+=x.open;dest.activeDays+=x.activeDays;for(const season of x.seasons)dest.seasons.add(season);
+ }
+ records.clear();for(const [key,x] of merged)records.set(key,x);
+}
 function render(){const q=$("#search").value.trim().toLowerCase(),sort=$("#sort").value;
  const value=x=>sort==="seasons"?x.seasons.size:sort==="total"?x.total+x.activeDays:x[sort];const a=[...records.values()].filter(x=>(x.name+" "+x.player+" "+managerLabel(x).team+" "+managerLabel(x).username).toLowerCase().includes(q)).sort((x,y)=>value(y)-value(x)||y.total+y.activeDays-x.total-x.activeDays);
  const fmt=x=>x.closed||x.activeDays?x.longest.toFixed(1)+"d"+(x.activeDays?" †":""):"—",total=x=>x.closed||x.activeDays?(x.total+x.activeDays).toFixed(1)+"d"+(x.activeDays?" †":""):"—";
@@ -48,6 +59,7 @@ async function run(){try{let league=await get("/league/"+ROOT),seasons=[];const 
   const tx=[],txIds=new Set();results.forEach(r=>{if(r.status==="fulfilled"&&Array.isArray(r.value)){for(const t of r.value){const key=String(t.transaction_id||JSON.stringify(t));if(!txIds.has(key)){txIds.add(key);tx.push(t)}}}else incomplete++});
   calculate(s,users,rosters,drafts,tx,String(id)===ROOT);seasonCount++;$("#status").textContent=seasonCount+" of "+seasons.length+" seasons processed · "+records.size+" records (loading player names…)";render();renderAudit();
  }
+ mergeConfirmedAliases();
  try{const players=await get("/players/nba");for(const x of records.values()){const p=players[x.pid];if(p)x.player=[p.first_name,p.last_name].filter(Boolean).join(" ")||x.pid}}catch{incomplete++}
  $("#status").textContent=seasonCount+" linked seasons · "+eventCount+" ownership events · "+(incomplete?incomplete+" unresolved events/requests · ":"")+"† Active streaks stop at the estimated season end (24 weeks after draft start); historical open streaks excluded.";
  $("#stats").innerHTML=[["Manager-player pairs",records.size],["Seasons",seasonCount],["Recorded acquisitions",[...records.values()].reduce((n,x)=>n+x.stints,0)]].map(([k,v])=>'<div class="stat"><small>'+k+'</small><strong>'+v+"</strong></div>").join("");render();renderAudit();
