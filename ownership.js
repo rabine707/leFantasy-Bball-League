@@ -2,7 +2,7 @@
 const API="https://api.sleeper.app/v1",ROOT="1406415989997846528",$=s=>document.querySelector(s);
 const safe=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const records=new Map(),audit=[],identities=new Map(),historicalUsers=new Map();
-const USERNAME_ALIASES={"lukekornet":"19crimes"};
+const USERNAME_ALIASES={"lukekornet":"19crimes","ineedagf":"mattman"};
 const canonicalUsername=name=>{let key=String(name||"").replace(/^@/,"").toLowerCase();const seen=new Set();while(USERNAME_ALIASES[key]&&!seen.has(key)){seen.add(key);key=USERNAME_ALIASES[key]}return key};let incomplete=0,seasonCount=0,eventCount=0;const flag=(type,season,uid,pid,detail,txid)=>audit.push({type,season,uid,pid,detail,txid:txid||""});
 async function get(p){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);try{const r=await fetch(API+p,{signal:controller.signal});if(!r.ok)throw Error("Sleeper "+r.status);return await r.json()}finally{clearTimeout(timer)}}
 const stamp=v=>{const n=Number(v);return Number.isFinite(n)&&n>0?(n<1e11?n*1000:n):null};
@@ -32,20 +32,23 @@ function calculate(league,users,rosters,drafts,transactions,isCurrent){
  for(const [key,t] of active){const [uid,pid]=key.split("|");const x=record(uid,pid,names.get(uid)||"Manager",season);x.open++;if(isCurrent){const roster=rosters.find(r=>String(r.owner_id)===uid&&(r.players||[]).map(String).includes(pid));if(!roster){flag("Roster mismatch",season,uid,pid,"Recorded as held, but absent from current roster")}if(roster&&t<=now){const days=duration(t,now);if(days!==null){x.activeDays=Math.max(x.activeDays,days);x.longest=Math.max(x.longest,days)}}}}
 }
 function renderAudit(){const root=$("#audit-rows");if(!root)return;const q=$("#audit-search").value.trim().toLowerCase(),filter=$("#audit-filter").value;const rows=audit.filter(x=>(filter==="all"||x.type===filter)&&(x.type+" "+x.season+" "+x.uid+" "+x.pid+" "+x.detail).toLowerCase().includes(q));$("#audit-summary").textContent=audit.length+" flagged events · "+rows.length+" shown. Flags are potential inconsistencies, not confirmed errors.";root.innerHTML=rows.slice(0,500).map(x=>"<tr><td>"+safe(x.season)+"</td><td>"+safe(x.type)+"</td><td>"+safe(x.uid)+"</td><td>"+safe(x.pid)+"</td><td>"+safe(x.detail)+"</td><td>"+safe(x.txid)+"</td></tr>").join("")||'<tr><td colspan="6">No matching flags.</td></tr>'}
-const identityKeys=i=>[i?.username,i?.display,i?.team].filter(Boolean).map(canonicalUsername);
-const isConfirmedAlias=i=>identityKeys(i).includes("19crimes");
-const managerLabel=x=>{const i=identities.get(x.uid)||{};if(isConfirmedAlias(i)||canonicalUsername(x.name)==="19crimes")return {team:"Adolf Silver",username:"19Crimes"};return {team:i.team||x.name,username:i.username||i.display||""}};
+const aliasGroups=[{canonical:"19crimes",username:"19Crimes",team:"Adolf Silver"},{canonical:"mattman",username:"mattman"}];
+const identityKeys=i=>[i?.username,i?.display].filter(Boolean).map(canonicalUsername);
+const matchesAlias=(uid,group)=>{const i=identities.get(uid)||{},h=historicalUsers.get(uid);return identityKeys(i).includes(group.canonical)||[...(h?.usernames||[])].some(n=>canonicalUsername(n)===group.canonical)};
+const managerLabel=x=>{const i=identities.get(x.uid)||{};const group=aliasGroups.find(g=>matchesAlias(x.uid,g));return {team:group?.team||i.team||x.name,username:group?.username||i.username||i.display||""}};
 function mergeConfirmedAliases(){
- // Prefer the current-season 19Crimes account; historical aliases may have different IDs.
- const matching=[...identities].filter(([,i])=>isConfirmedAlias(i));
- const preferred=matching.find(([,i])=>String(i.username||"").toLowerCase()==="19crimes"&&i.latest)||matching.find(([,i])=>String(i.display||"").toLowerCase()==="19crimes")||matching[0];
- if(!preferred)return;
- const target=preferred[0];
- identities.set(target,{...identities.get(target),username:"19Crimes",team:"Adolf Silver"});
+ const remap=new Map();
+ for(const group of aliasGroups){
+  const matching=[...identities.keys()].filter(uid=>matchesAlias(uid,group));
+  if(!matching.length)continue;
+  const preferred=matching.find(uid=>{const i=identities.get(uid)||{};return [i.username,i.display].some(n=>String(n||"").toLowerCase()===group.canonical)})||matching[0];
+  const original=identities.get(preferred)||{};
+  identities.set(preferred,{...original,username:group.username,team:group.team||original.team});
+  for(const uid of matching)remap.set(uid,preferred);
+ }
  const merged=new Map();
  for(const x of records.values()){
-  const alias=isConfirmedAlias(identities.get(x.uid))||canonicalUsername(x.name)==="19crimes";
-  const uid=alias?target:x.uid,key=uid+"|"+x.pid;
+  const uid=remap.get(x.uid)||x.uid,key=uid+"|"+x.pid;
   if(!merged.has(key)){merged.set(key,{...x,uid,seasons:new Set(x.seasons)});continue}
   const dest=merged.get(key);dest.longest=Math.max(dest.longest,x.longest);dest.total+=x.total;dest.stints+=x.stints;dest.closed+=x.closed;dest.open+=x.open;dest.activeDays+=x.activeDays;for(const season of x.seasons)dest.seasons.add(season);
  }
