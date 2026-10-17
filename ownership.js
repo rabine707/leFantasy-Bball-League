@@ -31,15 +31,15 @@ function render(){const q=$("#search").value.trim().toLowerCase(),sort=$("#sort"
  $("#rows").innerHTML=a.slice(0,500).map(x=>'<tr><td data-label="Manager">'+manager(x)+'</td><td data-label="Player" class="player-cell">'+safe(x.player)+'</td><td data-label="Longest hold">'+fmt(x)+'</td><td data-label="Total days">'+total(x)+'</td><td data-label="Acquisitions">'+x.stints+'</td><td data-label="Seasons">'+x.seasons.size+'</td></tr>').join("")||'<tr><td colspan="6">No matching records.</td></tr>';
 }
 async function run(){try{let league=await get("/league/"+ROOT),seasons=[];const seen=new Set();
- while(league&&seasons.length<20&&!seen.has(String(league.league_id))){seasons.push(league);seen.add(String(league.league_id));const prev=league.previous_league_id;if(!prev||prev==="0")break;league=await get("/league/"+prev)}
+ while(league&&seasons.length<20&&!seen.has(String(league.league_id))){seasons.push(league);seen.add(String(league.league_id));const prev=league.previous_league_id;if(!prev||prev==="0")break;try{league=await get("/league/"+prev)}catch{incomplete++;break}}
  for(const s of seasons){$("#status").textContent="Scanning "+s.season+" ("+(seasonCount+1)+"/"+seasons.length+")…";const id=s.league_id;
   const [users,rosters,drafts]=await Promise.all([get("/league/"+id+"/users"),get("/league/"+id+"/rosters"),get("/league/"+id+"/drafts")]);
   const pickResults=await Promise.allSettled(drafts.map(d=>get("/draft/"+d.draft_id+"/picks")));
   drafts.forEach((d,i)=>{d.picks=pickResults[i].status==="fulfilled"?pickResults[i].value:[];if(pickResults[i].status!=="fulfilled")incomplete++});
   const weeks=Math.min(30,Math.max(19,Number(s.settings?.playoff_week_start||19)+5));
-  const results=await Promise.allSettled(Array.from({length:weeks+1},(_,i)=>get("/league/"+id+"/transactions/"+i)));
+  const results=[];for(let offset=0;offset<=weeks;offset+=6){const batch=await Promise.allSettled(Array.from({length:Math.min(6,weeks+1-offset)},(_,i)=>get("/league/"+id+"/transactions/"+(offset+i))));results.push(...batch);$("#status").textContent="Scanning "+s.season+" · transaction weeks "+Math.min(offset+6,weeks+1)+"/"+(weeks+1)+"…"}
   const tx=[],txIds=new Set();results.forEach(r=>{if(r.status==="fulfilled"&&Array.isArray(r.value)){for(const t of r.value){const key=String(t.transaction_id||JSON.stringify(t));if(!txIds.has(key)){txIds.add(key);tx.push(t)}}}else incomplete++});
-  calculate(s,users,rosters,drafts,tx,String(id)===ROOT);seasonCount++;
+  calculate(s,users,rosters,drafts,tx,String(id)===ROOT);seasonCount++;$("#status").textContent=seasonCount+" of "+seasons.length+" seasons processed · "+records.size+" records (loading player names…)";render();renderAudit();
  }
  try{const players=await get("/players/nba");for(const x of records.values()){const p=players[x.pid];if(p)x.player=[p.first_name,p.last_name].filter(Boolean).join(" ")||x.pid}}catch{incomplete++}
  $("#status").textContent=seasonCount+" linked seasons · "+eventCount+" ownership events · "+(incomplete?incomplete+" unresolved events/requests · ":"")+"† Active streaks are measured to today only when confirmed on the current roster; historical open streaks excluded.";
