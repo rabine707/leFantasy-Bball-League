@@ -9,20 +9,20 @@ function calculate(league,users,rosters,drafts,transactions,isCurrent){
  const season=String(league.season||"Unknown"),names=new Map(users.map(u=>[String(u.user_id),u.metadata?.team_name||u.display_name||u.username||"Manager"]));
  const rosterOwner=new Map(rosters.filter(r=>r.owner_id).map(r=>[String(r.roster_id),String(r.owner_id)]));
  const events=[],active=new Map();const now=Date.now();
- for(const d of drafts){for(const p of d.picks||[]){const uid=String(p.picked_by||""),pid=String(p.player_id||"");if(!uid||!pid)continue;const t=stamp(p.metadata?.drafted_at)||stamp(p.metadata?.picked_at)||stamp(d.start_time)||stamp(d.created);if(!t){incomplete++;continue}events.push({t,uid,pid,kind:"add",draft:true})}}
+ for(const d of drafts){for(const p of d.picks||[]){const uid=rosterOwner.get(String(p.roster_id))||String(p.picked_by||""),pid=String(p.player_id||"");if(!uid||!pid)continue;const t=stamp(p.metadata?.drafted_at)||stamp(p.metadata?.picked_at)||stamp(d.start_time)||stamp(d.created);if(!t){incomplete++;continue}events.push({t,uid,pid,kind:"add",draft:true})}}
  for(const t of transactions){if(t.status!=="complete")continue;const when=stamp(t.status_updated)||stamp(t.created);if(!when){incomplete++;continue}
-  for(const [pid,rid] of Object.entries(t.drops||{})){const uid=rosterOwner.get(String(rid));if(uid)events.push({t:when,uid,pid,kind:"drop"})}
-  for(const [pid,rid] of Object.entries(t.adds||{})){const uid=rosterOwner.get(String(rid));if(uid)events.push({t:when,uid,pid,kind:"add"})}
+  for(const [pid,rid] of Object.entries(t.drops||{})){const uid=rosterOwner.get(String(rid));if(uid)events.push({t:when,uid,pid,kind:"drop"});else incomplete++}
+  for(const [pid,rid] of Object.entries(t.adds||{})){const uid=rosterOwner.get(String(rid));if(uid)events.push({t:when,uid,pid,kind:"add"});else incomplete++}
  }
  events.sort((a,b)=>a.t-b.t||(a.kind==="drop"?-1:1));eventCount+=events.length;
  for(const e of events){const key=e.uid+"|"+e.pid,existing=active.get(key),name=names.get(e.uid)||"Manager";
   if(e.kind==="drop"){if(!existing){incomplete++;continue}const x=record(e.uid,e.pid,name,season);const days=Math.max(0,(e.t-existing)/86400000);x.longest=Math.max(x.longest,days);x.total+=days;x.closed++;active.delete(key)}
-  else if(!existing){active.set(key,e.t);const x=record(e.uid,e.pid,name,season);x.stints++}
+  else if(!existing){active.set(key,e.t);const x=record(e.uid,e.pid,name,season);x.stints++}else if(!e.draft){incomplete++}
  }
  for(const [key,t] of active){const [uid,pid]=key.split("|");const x=record(uid,pid,names.get(uid)||"Manager",season);x.open++;if(isCurrent){const roster=rosters.find(r=>String(r.owner_id)===uid&&(r.players||[]).map(String).includes(pid));if(roster&&t<=now){const days=Math.max(0,(now-t)/86400000);x.activeDays=Math.max(x.activeDays,days);x.longest=Math.max(x.longest,days)}}}
 }
 function render(){const q=$("#search").value.trim().toLowerCase(),sort=$("#sort").value;
- const a=[...records.values()].filter(x=>(x.name+" "+x.player).toLowerCase().includes(q)).sort((x,y)=>(sort==="seasons"?y.seasons.size-x.seasons.size:y[sort]-x[sort])||(sort==="total"?(y.total+y.activeDays)-(x.total+x.activeDays):0)||y.total-x.total);
+ const value=x=>sort==="seasons"?x.seasons.size:sort==="total"?x.total+x.activeDays:x[sort];const a=[...records.values()].filter(x=>(x.name+" "+x.player).toLowerCase().includes(q)).sort((x,y)=>value(y)-value(x)||y.total+y.activeDays-x.total-x.activeDays);
  $("#rows").innerHTML=a.slice(0,500).map(x=>"<tr><td>"+safe(x.name)+"</td><td>"+safe(x.player)+"</td><td>"+(x.closed||x.activeDays?x.longest.toFixed(1)+"d"+(x.activeDays?" †":""):"—")+"</td><td>"+(x.closed||x.activeDays?(x.total+x.activeDays).toFixed(1)+"d"+(x.activeDays?" †":""):"—")+"</td><td>"+x.stints+"</td><td>"+x.seasons.size+"</td></tr>").join("")||'<tr><td colspan="6">No matching records.</td></tr>';
 }
 async function run(){try{let league=await get("/league/"+ROOT),seasons=[];const seen=new Set();
